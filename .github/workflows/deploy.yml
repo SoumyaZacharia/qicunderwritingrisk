@@ -25,7 +25,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2 # Official action for GCP authentication
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }} # Authenticate with the SA key
+          credentials_json: ${{ secrets.GCP_SA_KEY }} # Authenticate using the SA key JSON
 
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2 # Official action to set up gcloud CLI
@@ -34,12 +34,17 @@ jobs:
 
       - name: Configure Docker to use Artifact Registry
         run: |
+          # Authenticate Docker CLI to your Artifact Registry
           gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.CLOUD_RUN_SERVICE_NAME }}:${{ github.sha }} .
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.CLOUD_RUN_SERVICE_NAME }}:${{ github.sha }}
+          # Construct the full image name
+          IMAGE_NAME="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.CLOUD_RUN_SERVICE_NAME }}:${{ github.sha }}"
+          # Build the Docker image from the Dockerfile in the current directory (.)
+          docker build -t "$IMAGE_NAME" .
+          # Push the built image to Artifact Registry
+          docker push "$IMAGE_NAME"
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2 # Official action for Cloud Run deployment
@@ -47,15 +52,24 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.CLOUD_RUN_SERVICE_NAME }}:${{ github.sha }}
-
           # Optional: Set environment variables for your NestJS app
+          # These override any environment variables set in the Dockerfile if they have the same name.
           # env_vars: |
           #   NODE_ENV=production
           #   DATABASE_URL=${{ secrets.DB_URL }} # Example: get from GitHub Secret
-          # Add other Cloud Run flags as needed:
-          # no_allow_unauthenticated: false # Publicly accessible
-          # port: 3000 # Your NestJS app's port
-          # concurrency: 80
+          #   MY_API_KEY=${{ secrets.MY_API_KEY }}
+          # Cloud Run best practice is to listen on the PORT env variable that Cloud Run provides (usually 8080)
+          # Ensure your main.ts is configured to use process.env.PORT.
+          # This explicitly allows unauthenticated access (if your service is public)
+          # For an internal service, remove this line or set to true
+          no_allow_unauthenticated: true # Set to true if your API is public, false if it's internal and requires IAM auth
+          # Optional: Specify the port your container is listening on (default for Cloud Run is 8080, NestJS default is 3000)
+          # Only needed if your app is NOT listening on 8080.
+          # The `main.ts` change (process.env.PORT || 3000) makes this less critical as Cloud Run sets PORT=8080.
+          # port: 8080
+          # Optional: Set resource limits
+          # cpu: 1
+          # memory: 512Mi
+          # concurrency: 80 # Max concurrent requests per instance
           # max_instances: 10
           # min_instances: 0
-          # memory: 512Mi

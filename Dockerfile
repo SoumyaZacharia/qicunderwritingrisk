@@ -1,40 +1,36 @@
-# Use a lightweight Node.js base image
+# --- Build Stage ---
 FROM node:20-alpine AS build
 
-# Set working directory
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy package.json and yarn.lock/package-lock.json
+# Copy package.json and package-lock.json (or yarn.lock) first.
+# This leverages Docker's build cache: if dependencies haven't changed,
+# npm install won't be re-run.
 COPY package*.json ./
-# If you use yarn:
-# COPY yarn.lock ./
 
-# Install dependencies
-RUN npm install --omit=dev
-# If you use yarn:
-# RUN yarn install --production
+# **THIS IS THE CRITICAL LINE:**
+# Install ALL dependencies (including devDependencies) for the build process.
+# This ensures `@nestjs/cli` is available for `nest build`.
+RUN npm install
 
-# Copy source code
+# Copy the rest of the application source code
 COPY . .
 
-# Build NestJS application
+# Build the NestJS application for production
+# Now `nest` command should be found as @nestjs/cli is installed
 RUN npm run build
-# If you use yarn:
-# RUN yarn build
 
-# --- Production stage ---
+# --- Production Stage (remains the same as before) ---
 FROM node:20-alpine AS production
 
-# Set working directory
 WORKDIR /app
 
-# Copy necessary artifacts from the build stage
+# Copy only production-necessary artifacts from the build stage
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/package*.json ./
+COPY --from=build /app/package.json ./
 
-# Expose the port your NestJS app listens on (default is 3000)
 EXPOSE 3000
 
-# Command to run your NestJS application
 CMD [ "npm", "run", "start:prod" ]
