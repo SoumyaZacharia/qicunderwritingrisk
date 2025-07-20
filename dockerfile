@@ -34,7 +34,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
 
 # Expose the port your NestJS app listens on (default is 3000)
-EXPOSE 8080
+EXPOSE 3000
 
 # Command to run your NestJS application
 CMD [ "npm", "run", "start:prod" ]
