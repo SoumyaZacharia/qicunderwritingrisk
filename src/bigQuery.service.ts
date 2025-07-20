@@ -40,8 +40,12 @@ export class BigQueryService {
       await this.fetchAllRows(dataset, table);
     } else if (data == 'rainfall') {
       url = dataLinks.rainfallAverage;
+      const rainfallData = await lastValueFrom(this.httpService.get(url));
       table = 'rainfall';
       await this.delete(table, dataset);
+      await this.loadRainfallData(rainfallData.data.results, dataset, table);
+    } else {
+      return 'Invalid choice';
     }
   }
 
@@ -52,111 +56,44 @@ export class BigQueryService {
     }
   }
   async loadAccidentsDataToBQ(records, dataset, table) {
+    const schema = [
+      { name: 'year', type: 'STRING' },
+      { name: 'result_of_the_accident', type: 'STRING' },
+      { name: 'number_of_people', type: 'INTEGER' },
+      { name: 'result_of_the_accident_ar', type: 'STRING' },
+    ];
+    await this.bigquery.dataset(dataset).createTable(table, {
+      schema: schema,
+    });
     const options = {
       skipInvalidRows: true,
       ignoreUnknownValues: true,
-      schema: [
-        { name: 'year', type: 'STRING' },
-        { name: 'result_of_the_accident', type: 'STRING' },
-        { name: 'number_of_people', type: 'INTEGER' },
-        { name: 'result_of_the_accident_ar', type: 'STRING' },
-      ],
+      schema: schema,
       // ],
     };
     console.log('inserting', records);
     await this.insertBigqueryRecords(records, options, dataset, table);
   }
 
-  // // Upload the local file
-  // const [job] = await this.bigquery
-  //   .dataset(this.datasetId)
-  //   .table(this.tableId)
-  //   .load('data.csv', metadata);
-
   async loadRainfallData(records, dataset: string, table: string) {
+    const schema = [
+      { name: '2016', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: '2017', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: '2018', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: '2019', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: '2020', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: '2021', type: 'FLOAT', mode: 'NULLABLE' },
+      { name: 'station', type: 'STRING', mode: 'NULLABLE' },
+    ];
     const options = {
       skipInvalidRows: true,
       ignoreUnknownValues: true,
-      schema: [
-        { name: '2016', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: '2017', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: '2018', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: '2019', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: '2020', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: '2021', type: 'FLOAT', mode: 'NULLABLE' },
-        { name: 'station', type: 'STRING', mode: 'NULLABLE' },
-      ],
+      schema: schema,
     };
-    await this.insertBigqueryRecords(records, options, dataset, table);
-  }
-
-  async loadRealEstateDataToBQ() {
-    const metadata = {
-      sourceFormat: 'CSV',
-      skipLeadingRows: 1,
-      fieldDelimiter: '|',
-      quote: '"',
-      writeDisposition: 'WRITE_TRUNCATE', //replace all rows
-      schema: {
-        fields: [
-          { name: 'date_of_contract', type: 'DATE' },
-          { name: 'municipality_name', type: 'STRING' },
-          { name: 'sm_lbldy', type: 'STRING' },
-          { name: 'zone_name', type: 'STRING' },
-          { name: 'sm_lmntq', type: 'STRING' },
-          { name: 'real_estate_type', type: 'STRING' },
-          { name: 'nw_l_qr', type: 'STRING' },
-          { name: 'area_in_square_meters', type: 'FLOAT' },
-          { name: 'price_per_square_foot', type: 'FLOAT' },
-          { name: 'real_estate_value', type: 'FLOAT' },
-          { name: 'geo_point_2d', type: 'RECORD' },
-        ],
-      },
-    };
-    //Date of Contract;Municipality Name;اسم البلدية;Zone Name;اسم المنطقة;Real Estate Type;نوع العقار;Area in Square Meters;Price per Square Foot;Real Estate Value;geo_point_2d
-    console.log('ingesting 2');
-    // Upload the local file qicriskcalc.qicData.realEstate
-    const [job] = await this.bigquery
-      .dataset('qicData')
-      .table('realEstate')
-      .load('data.csv', metadata);
-  }
-  // await this.bigquery.dataset(this.datasetId).createTableI(this.tableId, {
-  //   schema: [
-  //     { name: 'year', type: 'STRING' },
-  //     { name: 'type_of_violation', type: 'STRING' },
-  //     { name: 'no_of_violations', type: 'INTEGER' },
-  //   ],
-  // });
-
-  async loadRealEstateDataToBQ2() {
-    await this.bigquery.dataset('').createTable('', {
-      schema: [
-        { name: 'date_of_contract', type: 'DATE' },
-        { name: 'municipality_name', type: 'STRING' },
-        { name: 'sm_lbldy', type: 'STRING' },
-        { name: 'zone_name', type: 'STRING' },
-        { name: 'sm_lmntq', type: 'STRING' },
-        { name: 'real_estate_type', type: 'STRING' },
-        { name: 'nw_l_qr', type: 'STRING' },
-        { name: 'area_in_square_meters', type: 'FLOAT' },
-        { name: 'price_per_square_foot', type: 'FLOAT' },
-        { name: 'real_estate_value', type: 'FLOAT' },
-        { name: 'geo_point_2d', type: 'RECORD' },
-      ],
+    await this.bigquery.dataset(dataset).createTable(table, {
+      schema: schema,
     });
-    // await this.bigquery
-    //   .dataset(this.datasetId)
-    //   .table(this.tableId)
-    //   .insert(rows);
-
-    //Date of Contract;Municipality Name;اسم البلدية;Zone Name;اسم المنطقة;Real Estate Type;نوع العقار;Area in Square Meters;Price per Square Foot;Real Estate Value;geo_point_2d
-    // console.log('ingesting 2');
-    // // Upload the local file qicriskcalc.qicData.realEstate
-    // const [job] = await this.bigquery
-    //   .dataset('qicData')
-    //   .table('realEstate')
-    //   .load('data.csv', metadata);
+    await this.insertBigqueryRecords(records, options, dataset, table);
   }
 
   async insertBigqueryRecords(rows, options, dataset, table): Promise<void> {
@@ -181,54 +118,34 @@ export class BigQueryService {
     let allRecords: any[] = [];
     let hasMore = true;
 
+    const schema = [
+      { name: 'date_of_contract', type: 'DATE' },
+      { name: 'municipality_name', type: 'STRING' },
+      { name: 'sm_lbldy', type: 'STRING' },
+      { name: 'zone_name', type: 'STRING' },
+      { name: 'sm_lmntq', type: 'STRING' },
+      { name: 'real_estate_type', type: 'STRING' },
+      { name: 'nw_l_qr', type: 'STRING' },
+      { name: 'area_in_square_meters', type: 'FLOAT' },
+      { name: 'price_per_square_foot', type: 'FLOAT' },
+      { name: 'real_estate_value', type: 'FLOAT' },
+      {
+        name: 'geo_point_2d',
+        type: 'RECORD',
+        mode: 'NULLABLE',
+        fields: [
+          { name: 'lon', type: 'FLOAT' },
+          { name: 'lat', type: 'FLOAT' },
+        ],
+      },
+    ];
     const options = {
       skipInvalidRows: true,
       ignoreUnknownValues: true,
-      schema: [
-        { name: 'date_of_contract', type: 'DATE' },
-        { name: 'municipality_name', type: 'STRING' },
-        { name: 'sm_lbldy', type: 'STRING' },
-        { name: 'zone_name', type: 'STRING' },
-        { name: 'sm_lmntq', type: 'STRING' },
-        { name: 'real_estate_type', type: 'STRING' },
-        { name: 'nw_l_qr', type: 'STRING' },
-        { name: 'area_in_square_meters', type: 'FLOAT' },
-        { name: 'price_per_square_foot', type: 'FLOAT' },
-        { name: 'real_estate_value', type: 'FLOAT' },
-        {
-          name: 'geo_point_2d',
-          type: 'RECORD',
-          mode: 'NULLABLE',
-          fields: [
-            { name: 'lon', type: 'FLOAT' },
-            { name: 'lat', type: 'FLOAT' },
-          ],
-        },
-      ],
+      schema: schema,
     };
-
     await this.bigquery.dataset('qicData').createTable('realEstate2', {
-      schema: [
-        { name: 'date_of_contract', type: 'DATE' },
-        { name: 'municipality_name', type: 'STRING' },
-        { name: 'sm_lbldy', type: 'STRING' },
-        { name: 'zone_name', type: 'STRING' },
-        { name: 'sm_lmntq', type: 'STRING' },
-        { name: 'real_estate_type', type: 'STRING' },
-        { name: 'nw_l_qr', type: 'STRING' },
-        { name: 'area_in_square_meters', type: 'FLOAT' },
-        { name: 'price_per_square_foot', type: 'FLOAT' },
-        { name: 'real_estate_value', type: 'FLOAT' },
-        {
-          name: 'geo_point_2d',
-          type: 'RECORD',
-          mode: 'NULLABLE',
-          fields: [
-            { name: 'lon', type: 'FLOAT' },
-            { name: 'lat', type: 'FLOAT' },
-          ],
-        },
-      ],
+      schema: schema,
     });
 
     while (hasMore) {

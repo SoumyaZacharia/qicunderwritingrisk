@@ -27,21 +27,10 @@ export class AppController {
     console.log('ingesting', data.data);
     await this.bigQueryService.ingestData(data.data);
 
-    // const trafficAccidents = await lastValueFrom(
-    //   this.httpService.get(dataLinks.trafficAccidents),
-    // );
-    // const rainfallData = await lastValueFrom(
-    //   this.httpService.get(dataLinks.rainfallAverage),
-    // );
-    // await this.bigQueryService.fetchAllRows();
-    /// console.log(realEstateNewsLetter[0]);
-
     // const data = val.data.results;
     // const csv = parse(data);
     // writeFileSync('data.csv', csv);
 
-    //await this.bigQueryService.loadRealEstateDataToBQ();
-    ///await this.bigQueryService.insertViolationRecords(data);
     return 'ok';
   }
 }
