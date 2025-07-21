@@ -12,40 +12,65 @@ export class BigQueryService {
   private readonly logger = new Logger(BigQueryService.name);
 
   constructor(private readonly httpService: HttpService) {
-    this.bigquery = new BigQuery({
-      keyFilename:
-        '/Users/soumyazacharia/QIC/qic_underwriting/qicriskcalc-ed70ece6c640.json',
-      projectId: 'qicriskcalc',
-    });
+    if (process.env.NODE_ENV == 'testing')
+      this.bigquery = new BigQuery({
+        projectId: 'qicriskcalc',
+        keyFilename: process.env.BIG_QUERY_KEY_FILE_NAME,
+        //    '/Users/soumyazacharia/QIC/qic_underwriting/qicriskcalc-ed70ece6c640.json',
+      });
+    else {
+      console.log('default');
+      this.bigquery = new BigQuery({
+        projectId: 'qicriskcalc',
+      });
+    }
   }
-  async ingestData(data) {
-    let url: string;
-    let dataset = 'qicData';
-    let table: string;
-    if (data == 'trafficAccidents') {
-      url = dataLinks.trafficAccidents;
-      table = 'trafficAccidents';
-      const trafficAccidents = await lastValueFrom(this.httpService.get(url));
-      console.log('deleting');
-      await this.delete(table, dataset);
-      await this.loadAccidentsDataToBQ(
-        trafficAccidents.data.results,
-        dataset,
-        table,
-      );
-    } else if (data == 'realEstate') {
-      url = dataLinks.realEstateNewsLetter;
-      table = 'realEstate';
-      await this.delete(table, dataset);
-      await this.fetchAllRows(dataset, table);
-    } else if (data == 'rainfall') {
-      url = dataLinks.rainfallAverage;
-      const rainfallData = await lastValueFrom(this.httpService.get(url));
-      table = 'rainfall';
-      await this.delete(table, dataset);
-      await this.loadRainfallData(rainfallData.data.results, dataset, table);
-    } else {
-      return 'Invalid choice';
+
+  async ingestData(data: string): Promise<string> {
+    const dataset = 'qicData';
+
+    const ingestionMap = {
+      trafficAccidents: async () => {
+        const url = dataLinks.trafficAccidents;
+        const table = 'trafficAccidents';
+        const { data: response } = await lastValueFrom(
+          this.httpService.get(url),
+        );
+        await this.delete(table, dataset);
+        await this.loadAccidentsDataToBQ(response.results, dataset, table);
+        return `Successfully inserted ${data} to BigQuery`;
+      },
+
+      realEstate: async () => {
+        const url = dataLinks.realEstateNewsLetter;
+        const table = 'realEstate';
+        await this.delete(table, dataset);
+        await this.fetchAllRows(dataset, table);
+        return `Successfully inserted ${data} to BigQuery`;
+      },
+
+      rainfall: async () => {
+        const url = dataLinks.rainfallAverage;
+        const table = 'rainfall';
+        const { data: response } = await lastValueFrom(
+          this.httpService.get(url),
+        );
+        await this.delete(table, dataset);
+        await this.loadRainfallData(response.results, dataset, table);
+        return `Successfully inserted ${data} to BigQuery`;
+      },
+    };
+
+    try {
+      const handler = ingestionMap[data];
+      if (!handler) {
+        return `Invalid data type: ${data}`;
+      }
+
+      return await handler();
+    } catch (err) {
+      this.logger.error(`Data ingestion failed for ${data}:`, err);
+      return `Data ingestion to BigQuery failed: ${err.message || err}`;
     }
   }
 
@@ -71,7 +96,6 @@ export class BigQueryService {
       schema: schema,
       // ],
     };
-    console.log('inserting', records);
     await this.insertBigqueryRecords(records, options, dataset, table);
   }
 
@@ -117,7 +141,7 @@ export class BigQueryService {
     let offset = 0;
     let allRecords: any[] = [];
     let hasMore = true;
-
+    await this.delete(table, dataset);
     const schema = [
       { name: 'date_of_contract', type: 'DATE' },
       { name: 'municipality_name', type: 'STRING' },
@@ -144,7 +168,7 @@ export class BigQueryService {
       ignoreUnknownValues: true,
       schema: schema,
     };
-    await this.bigquery.dataset('qicData').createTable('realEstate2', {
+    await this.bigquery.dataset('qicData').createTable(table, {
       schema: schema,
     });
 

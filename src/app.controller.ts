@@ -24,13 +24,8 @@ export class AppController {
   @HttpCode(HttpStatus.OK)
   @Post('/ingest')
   async ingestData(@Body() data: any): Promise<string> {
-    console.log('ingesting', data.data);
-    await this.bigQueryService.ingestData(data.data);
+    const message = await this.bigQueryService.ingestData(data.data);
 
-    // const data = val.data.results;
-    // const csv = parse(data);
-    // writeFileSync('data.csv', csv);
-
-    return 'ok';
+    return message;
   }
 }
