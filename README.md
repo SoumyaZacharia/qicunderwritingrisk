@@ -93,14 +93,14 @@ Bigquery API
 
 
 
-# CI/CD & Deployment
+## CI/CD & Deployment
 The NestJS Data Ingestion API is deployed to Google Cloud Run via an automated CI/CD pipeline:
 Code Push: Changes to the main branch in GitHub trigger the workflow.
 GitHub Actions: Authenticates with GCP using a Service Account Key(stored in project secrets)
 Docker Build & Push: Cloud Build (orchestrated by GitHub Actions) builds the Docker image from the Dockerfile and pushes it to Google Artifact Registry. (steps specified in .github/workflows/deploy.yml)
 Cloud Run Deployment: The image from Artifact Registry is deployed as a new revision to the Cloud Run service. The API is configured to allow unauthenticated invocations for public access. 
 
-# Calling data ingestion API
+## Calling data ingestion API
 
 Make POST request to https://qicunderwritingrisk-205493537479.europe-west1.run.app/ingest
 json body {
@@ -110,7 +110,7 @@ json body {
 pass the data set name to be updates:-> trafficAccidents, realEstate, rainfall
 
 
-# Future Enhancements
+## Future Enhancements
 Error Handling : Implement more robust error handling and retry mechanisms for API calls and BigQuery insertions.
 Data Validation: Add stable data validations (e.g., using NestJS DTOs) for incoming data to ensure it conforms to BigQuery schemas.
 Authentication for API: If the ingestion API needs to be private, implement API key or OAuth2 authentication for the /ingest endpoints.
