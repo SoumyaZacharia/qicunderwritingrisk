@@ -43,6 +43,7 @@ export class BigQueryService {
 
       realEstate: async () => {
         const url = dataLinks.realEstateNewsLetter;
+
         const table = 'realEstate';
         await this.delete(table, dataset);
         await this.fetchAllRows(dataset, table);
@@ -141,7 +142,6 @@ export class BigQueryService {
     let offset = 0;
     let allRecords: any[] = [];
     let hasMore = true;
-    await this.delete(table, dataset);
     const schema = [
       { name: 'date_of_contract', type: 'DATE' },
       { name: 'municipality_name', type: 'STRING' },
