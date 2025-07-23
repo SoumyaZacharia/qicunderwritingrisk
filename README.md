@@ -118,3 +118,13 @@ pass the data set name to be updates:-> trafficAccidents, realEstate, rainfall
 - Advanced Analytics: Explore BigQuery ML for predictive modeling (e.g., predicting risk scores based on historical data).
 - More Data Sources: Integrate additional relevant data (e.g., demographic data, weather forecasts, crime statistics) to enrich risk analysis.
 
+## Challenges 
+1. Real Estate News Letter data and rainfall data have been removed
+<img width="1846" height="1454" alt="image" src="https://github.com/user-attachments/assets/c93fc368-d20c-44dc-afd6-781300e2c18d" />
+2. Real Estate News Letter API(when it was available) returned paginated response. It had over 20,000 rows. So the offset limit had to be iterated to retrieve all rows. But API threw error when offset limit crossed 10,000.
+ <img width="1924" height="538" alt="image" src="https://github.com/user-attachments/assets/4482ea3c-4cf2-4997-9f2a-701f0ef0b6c9" />
+3. Road Accidents risk data lacks the location data. Location data would have been helpful in identifying accident prone areas
+4. BigQuery Standard Version showed latency in row insersion probably due to unavailability of compute resources.
+
+
+
